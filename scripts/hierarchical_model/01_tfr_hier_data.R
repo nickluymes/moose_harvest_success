@@ -13,46 +13,7 @@ source("set_up.R")
 
 # Filter data for Time to Event analysis ----
 
-tidy_tte <- readRDS("data/processed/tidy_long.rds") %>%
-  left_join(readRDS("data/processed/tidy_season.rds")) %>%
-  ### keep only hunters that had a lottery tag, hunted in their tag's WMU 
-  ### for at least 1 day and less than the total number of days in the season
-  filter(
-    Tag_Lottery == TRUE,
-    Hunted == TRUE,
-    Tag_Match_WMU == TRUE,
-    Days > 0,
-    Days <= Season_Length,
-    !is.na(Tag_FA),
-    !is.na(Tag_Moose)
-  ) %>%
-  mutate(
-    ### successful hunters where those that harvested a moose in a WMU that 
-    ### matched the WMU and age/sex class of their tag
-    ### unsuccessful hunters did not harvest a moose with their tag
-    Tag_Success = as.integer(
-      case_when(
-        UsedTag & Tag_Match_Moose & Success_Match_WMU ~ "1",
-        UsedTag == FALSE & is.na(Tag_Match_Moose) & 
-          is.na(Success_Match_WMU) ~ "0",
-        TRUE ~ NA_character_
-      )
-    ),
-    ### binned days for success model and ending hunt model
-    ### binned days for ending hunt model every multiple needs to be higher
-    ### than the highest binned day for success for the conditional probs 
-    ### to work
-   # Days2 = ifelse(Tag_Success==1, ceiling(Days/5), floor(Days/5))
-  ) %>%
-  filter(!is.na(Tag_Success), Tag_Lottery,
-         ### filter out bins that span less than 5 days 
-        # Days2*5<=Season_Length, Days2>0
-        )
-
-tidy_tte %>%
-  ggplot(aes(x=Days)) +
-  geom_histogram(binwidth=1) +
-  facet_wrap(~Tag_Success)
+tidy_tte <- readRDS("tidy_tte.rds")
 
 ### create dataset for if hunters ended their hunt without being successful
 tidy_stop <- tidy_tte %>%
@@ -220,11 +181,6 @@ tidy_unsuccess <- readRDS("data/processed/tidy_tags.rds") %>%
   )
 saveRDS(tidy_unsuccess, "data/processed/tidy_unsuccess.rds")
 
-tidy_unsuccess %>%
-  ggplot(aes(x=y)) +
-  geom_histogram(binwidth=1) +
-  xlim(-2,20)
-
 # Create adjacency matrix ----
 ### use spdep package to create a matrix with 1s and 0s where a 1 indicates 
 ### that the WMU in the corresponding row and column are neighbours.
@@ -234,20 +190,5 @@ adjacency_mat <- readRDS("data/processed/WMU_shp.rds") %>%
 rownames(adjacency_mat) <- WMU_shp$WMU
 saveRDS(adjacency_mat, "data/processed/adjacency_mat.rds")
 
-# tidy_cez <- tibble(Tag_WMU = WMU_level_order) %>%
-#   mutate(
-#     wmu_num = as.numeric(gsub(".*?([0-9]+).*", "\\1", Tag_WMU)),
-#     CEZ = case_when(
-#       wmu_num %in% c(1,2,16,17,18,24,25,26,27) ~ "A",
-#       wmu_num %in% c(3,4,14,15,19,21,22,23,30,33,34) ~ "B",
-#       wmu_num %in% c(5,8,12,13) ~ "C1",
-#       Tag_WMU %in% c("9A","11B") ~ "C1",
-#       wmu_num %in% c(28,29,31,32,35,38,39,40,41) ~ "C2",
-#       wmu_num %in% c(6,7) ~ "D1",
-#       Tag_WMU %in% c("9B","11A") ~ "D1",
-#       wmu_num %in% c(36,37,42,46,47,48,49,50,53,54,55,56,57,58,60,61,62,63) ~ "D2",
-#       wmu_num %in% c(59,65) ~ "E3"
-#     ),
-#     wmu_num = NULL
-#   )
+
 

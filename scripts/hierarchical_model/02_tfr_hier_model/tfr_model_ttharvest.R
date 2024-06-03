@@ -23,8 +23,9 @@ adj_mat <- temp[mat_ids,mat_ids]
 
 ### set priors for beta coefficients
 b_prior <- set_prior("normal(0, 1)", class = "b")
-mod <- brm(y | trials(n) ~ scale(timeInt_poly1) +
-            scale(timeInt_poly2) +
+mod <- brm(y | trials(n) ~ scale(timeInt_log_poly1) +
+             scale(timeInt_log_poly2) +
+             scale(timeInt_log_poly3) +
              scale(tagpermooselog_avg) +
              scale(tagpermooselog_change) +
              scale(pop_avg) +
@@ -38,7 +39,7 @@ mod <- brm(y | trials(n) ~ scale(timeInt_poly1) +
              scale(dhunters_avg) +
              scale(dhunters_change) +
              Tag_Res*Tag_Moose*Tag_FA +
-             (1 + Tag_Res*Tag_Moose*Tag_FA|Tag_WMU) + 
+             (1|Tag_WMU) + 
              (1|Year) +
               car(M, gr = Tag_WMU, type = "icar"),
            family = binomial(link = "cloglog"),
